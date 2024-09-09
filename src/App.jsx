@@ -22,10 +22,10 @@ function App() {
             path="/" 
             element={<CustomVideoPlay src={videoUrl} poster="../../pwa-512x512.png" />} 
           />
-          <Route path="video-player" element={videoUrl && <VideoPlayer src={videoUrl} />} />
+          <Route path="/record-player" element={videoUrl && <VideoRecorder />} />
+          <Route path="/video-player" element={videoUrl && <VideoPlayer src={videoUrl} />} />
           <Route path="custom-video-player" element={videoUrl && <CustomVideoPlayer src={videoUrl} />} />
           <Route path="core-video-player" element={videoUrl && <CoreVideoPlayer src={videoUrl} />} />
-          <Route path="record-player" element={videoUrl && <VideoRecorder />} />
         </Routes>
       </BrowserRouter>
     </>
