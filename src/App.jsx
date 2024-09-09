@@ -9,6 +9,7 @@ import VideoPlayer from './components/VideoPlayer.jsx';
 import CustomVideoPlayer from './components/CustomVideoPlayer.jsx';
 import CoreVideoPlayer from './components/CoreVideoPlayer.jsx';
 import VideoRecorder from './components/VideoRecorder.jsx'
+import CoreVideoRecorder from './components/CoreVideoRecorder.jsx';
 // import QualityControl from './components/QualityControl.jsx';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
             element={<CustomVideoPlay src={videoUrl} poster="../../pwa-512x512.png" />} 
           />
           <Route path="/record-player" element={<VideoRecorder />} />
+          <Route path="/core-record-player" element={<CoreVideoRecorder />} />
           {/* <Route path="/record-player" element={videoUrl && <VideoRecorder />} /> */}
           <Route path="/video-player" element={videoUrl && <VideoPlayer src={videoUrl} />} />
           <Route path="custom-video-player" element={videoUrl && <CustomVideoPlayer src={videoUrl} />} />

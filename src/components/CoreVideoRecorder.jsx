@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import RecordRTC from "recordrtc";
 
-const VideoRecorder = () => {
+const CoreVideoRecorder = () => {
   const videoPreviewRef = useRef(null);
   const [timer, setTimer] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -47,14 +47,31 @@ const VideoRecorder = () => {
     }
   };
 
+  // Ensure the camera stream is set up properly on iOS (Safari, Chrome, Firefox)
+  useEffect(() => {
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.setAttribute("playsinline", true); // Important for iOS to avoid fullscreen mode
+      videoPreviewRef.current.setAttribute("muted", true); // iOS requires the video to be muted to play inline
+    }
+
+    // Get the camera stream on initial render or when facingMode changes
+    getCameraStream();
+
+    // Cleanup the media stream when component unmounts
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [facingMode]);
+
   // Handle camera switch
   const switchCamera = async () => {
     if (isRecording) {
-      // Stop the recording when switching the camera
-      stopRecording();
+      stopRecording(); // Stop recording before switching
     }
 
-    // Stop the current stream and switch the camera
+    // Stop the current media stream and switch the camera
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
@@ -62,15 +79,10 @@ const VideoRecorder = () => {
     setFacingMode((prevMode) => (prevMode === "user" ? "environment" : "user"));
   };
 
-  useEffect(() => {
-    // Ask for permission and get the camera stream on facingMode change
-    getCameraStream();
-  }, [facingMode]);
-
   // Start recording
   const startRecording = () => {
     if (stream) {
-      const recorder = new RecordRTC(stream, { type: 'video' });
+      const recorder = new RecordRTC(stream, { type: "video" });
       recorder.startRecording();
       setRecording(recorder);
       setIsRecording(true);
@@ -120,6 +132,7 @@ const VideoRecorder = () => {
         }}
         autoPlay
         muted
+        playsInline // Important for iOS devices
       />
 
       {/* Timer display */}
@@ -148,4 +161,4 @@ const VideoRecorder = () => {
   );
 };
 
-export default VideoRecorder;
+export default CoreVideoRecorder;
