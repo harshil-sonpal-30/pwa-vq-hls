@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import RecordRTC from "recordrtc";
 
-const CoreVideoRecorder = () => {
+const CoreVideoWithSelectBox = () => {
   const videoPreviewRef = useRef(null);
   const [timer, setTimer] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -10,7 +10,10 @@ const CoreVideoRecorder = () => {
   const [recording, setRecording] = useState(null);
   const [mediaBlobUrl, setMediaBlobUrl] = useState(null);
   const [facingMode, setFacingMode] = useState("user");
-  const [isMuted, setIsMuted] = useState(false);
+  const [devices, setDevices] = useState([]);
+  const [selectedAudioInput, setSelectedAudioInput] = useState(null);
+  const [selectedVideoInput, setSelectedVideoInput] = useState(null);
+  const [selectedAudioOutput, setSelectedAudioOutput] = useState(null);
 
   // Timer logic for recording duration
   useEffect(() => {
@@ -32,31 +35,43 @@ const CoreVideoRecorder = () => {
     return `${minutes}:${seconds < 10 ? `0${seconds}` : seconds}`;
   };
 
-  // Function to get the user's video stream
+  // Get the available media devices (audio/video input/output)
+  const getAvailableDevices = async () => {
+    try {
+      // Prompt the user for permissions to access camera and microphone
+      await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+  
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setDevices(devices);
+    } catch (error) {
+      console.error("Error fetching media devices:", error);
+    }
+  };
+
+  useEffect(() => {
+    getAvailableDevices();
+  }, []);
+
+  // Get user media stream based on selected devices
   const getCameraStream = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
-        audio: true, // Set to true if you also want to record audio
+        video: { deviceId: selectedVideoInput || undefined },
+        audio: { deviceId: selectedAudioInput || undefined },
       });
       setStream(mediaStream);
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = mediaStream;
       }
     } catch (error) {
-      console.error("Error accessing camera:", error);
+      console.error("Error accessing camera or microphone:", error);
     }
   };
 
-  // Ensure the camera stream is set up properly on iOS (Safari, Chrome, Firefox)
   useEffect(() => {
-    if (videoPreviewRef.current) {
-      videoPreviewRef.current.setAttribute("playsinline", true); // Important for iOS to avoid fullscreen mode
-      videoPreviewRef.current.setAttribute("muted", true); // iOS requires the video to be muted to play inline
+    if (selectedVideoInput || selectedAudioInput) {
+      getCameraStream();
     }
-
-    // Get the camera stream on initial render or when facingMode changes
-    getCameraStream();
 
     // Cleanup the media stream when component unmounts
     return () => {
@@ -64,7 +79,7 @@ const CoreVideoRecorder = () => {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [facingMode]);
+  }, [selectedVideoInput, selectedAudioInput]);
 
   // Handle camera switch
   const switchCamera = async () => {
@@ -72,7 +87,6 @@ const CoreVideoRecorder = () => {
       stopRecording(); // Stop recording before switching
     }
 
-    // Stop the current media stream and switch the camera
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
@@ -121,14 +135,18 @@ const CoreVideoRecorder = () => {
     }
   };
 
-  // Toggle mute/unmute
-  const toggleMute = () => {
-    if (stream) {
-      const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled; // Toggle the enabled state
-        setIsMuted(!audioTrack.enabled); // Update isMuted state
+  // Handle device change
+  const handleDeviceChange = (e, type) => {
+    const deviceId = e.target.value;
+    if (type === "audioinput") {
+      setSelectedAudioInput(deviceId);
+    } else if (type === "audiooutput") {
+      setSelectedAudioOutput(deviceId);
+      if (videoPreviewRef.current && typeof videoPreviewRef.current.sinkId !== "undefined") {
+        videoPreviewRef.current.setSinkId(deviceId);
       }
+    } else if (type === "videoinput") {
+      setSelectedVideoInput(deviceId);
     }
   };
 
@@ -150,6 +168,57 @@ const CoreVideoRecorder = () => {
       {/* Timer display */}
       {isRecording && <h2>Recording Time: {formatTime(timer)}</h2>}
 
+      {/* Device selectors */}
+      <div>
+        {/* Microphone Selector */}
+        <label>Microphone:</label>
+        <select
+            onChange={(e) => handleDeviceChange(e, "audioinput")}
+            value={selectedAudioInput || ""}
+        >
+        <option value="">Select Microphone</option>
+        {devices
+        .filter((device) => device.kind === "audioinput")
+        .map((device) => (
+            <option key={device.deviceId} value={device.deviceId}>
+            {device.label || `Microphone ${device.deviceId}`}
+            </option>
+        ))}
+    </select>
+
+    {/* Speaker Selector */}
+    <label>Speaker:</label>
+    <select
+        onChange={(e) => handleDeviceChange(e, "audiooutput")}
+        value={selectedAudioOutput || ""}
+    >
+        <option value="">Select Speaker</option>
+        {devices
+        .filter((device) => device.kind === "audiooutput")
+        .map((device) => (
+            <option key={device.deviceId} value={device.deviceId}>
+            {device.label || `Speaker ${device.deviceId}`}
+            </option>
+        ))}
+    </select>
+
+    {/* Camera Selector */}
+    <label>Camera:</label>
+    <select
+        onChange={(e) => handleDeviceChange(e, "videoinput")}
+        value={selectedVideoInput || ""}
+    >
+        <option value="">Select Camera</option>
+        {devices
+        .filter((device) => device.kind === "videoinput")
+        .map((device) => (
+            <option key={device.deviceId} value={device.deviceId}>
+            {device.label || `Camera ${device.deviceId}`}
+            </option>
+        ))}
+    </select>
+    </div>
+
       {/* Recording controls */}
       <div>
         <button onClick={startRecording}>Start Recording</button>
@@ -157,9 +226,6 @@ const CoreVideoRecorder = () => {
         <button onClick={pauseRecording}>Pause Recording</button>
         <button onClick={resumeRecording}>Resume Recording</button>
         <button onClick={switchCamera}>Switch Camera</button>
-        <button onClick={toggleMute}>
-          {isMuted ? "Unmute" : "Mute"} Audio
-        </button>
       </div>
 
       {/* Video playback */}
@@ -176,4 +242,4 @@ const CoreVideoRecorder = () => {
   );
 };
 
-export default CoreVideoRecorder;
+export default CoreVideoWithSelectBox;

@@ -10,6 +10,7 @@ import CustomVideoPlayer from './components/CustomVideoPlayer.jsx';
 import CoreVideoPlayer from './components/CoreVideoPlayer.jsx';
 import VideoRecorder from './components/VideoRecorder.jsx'
 import CoreVideoRecorder from './components/CoreVideoRecorder.jsx';
+import CoreVideoWithSelectBox from './components/CoreVideoWithSelectBox.jsx';
 // import QualityControl from './components/QualityControl.jsx';
 
 function App() {
@@ -20,11 +21,12 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route 
-            path="/" 
+            path="/record-video-player" 
             element={<CustomVideoPlay src={videoUrl} poster="../../pwa-512x512.png" />} 
           />
           <Route path="/record-player" element={<VideoRecorder />} />
-          <Route path="/core-record-player" element={<CoreVideoRecorder />} />
+          <Route path="/core-record-player" element={<CoreVideoRecorder />} />   {/* working using video player  */}
+          <Route path="/core-video-select" element={<CoreVideoWithSelectBox />} />
           {/* <Route path="/record-player" element={videoUrl && <VideoRecorder />} /> */}
           <Route path="/video-player" element={videoUrl && <VideoPlayer src={videoUrl} />} />
           <Route path="custom-video-player" element={videoUrl && <CustomVideoPlayer src={videoUrl} />} />
